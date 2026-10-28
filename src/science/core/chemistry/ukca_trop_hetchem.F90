@@ -651,12 +651,7 @@ CASE ( cp_du )
    ! present in high enough concentrations, then large uptake
    ! may be seen (gamma~0.8). See Thornton et al, 2008, JGR.
    !=========================================================
-  WHERE ( rh_p >= 50.0 )
-    cal_ho2(:) = 0.1e0
-  ELSE WHERE
-     !update when data available
-    cal_ho2(:) = 0.05e0
-  END WHERE
+  cal_ho2(:) = 0.2e0
 
   !----------------
   ! Sulfate
@@ -675,16 +670,15 @@ CASE ( cp_su )
    ! gamma = 0.15, though there is dependence with rh.
    !===========================================================
 
-   ! rh_p factor doesn't work below 35%rh
   WHERE ( rh_p <= 35.0 )
-    cal_ho2(:) = 0.01e0
+    cal_ho2(:) = 0.002e0
   ELSE WHERE
-    ! Calculate temperature factor. Fix rel to 0.11
-    factt(:) = (5.66e-5 * EXP( 1560.0 / temp(:) ) ) / 0.11
+    ! Calculate temperature factor. Fix rel to 0.15
+    factt(:) = (5.66e-5 * EXP( 1560.0 / temp(:) ) ) / 0.15
     ! Calc rh_p factor from Taketani et al 2008
-    facth(:) = (-2.86 * EXP(-0.078*rh_p(:)) + 0.192 ) / 0.11
+    facth(:) = (-2.86 * EXP(-0.078*rh_p(:)) + 0.192 ) / 0.15
     ! Calc gamma
-    cal_ho2(:) = 0.11 * factt(:) * facth(:)
+    cal_ho2(:) = 0.15 * factt(:) * facth(:)
   END WHERE
 
   !Test with recommendations by Thornton and Abbatt 2008
@@ -701,7 +695,7 @@ CASE ( cp_bc )
    ! Ivanov (ref as dust) has measurements on soot, but can't
    ! find available anywhere.
    !===========================================================
-  cal_ho2(:) = 0.01e0
+  cal_ho2(:) = 0.03e0
 
   !----------------
   ! Organic Carbon
@@ -713,7 +707,11 @@ CASE ( cp_oc , cp_so )
    ! gamma=1d-4 to 5d-2 @ room temp.
    !===========================================================
    ! mid-value of available data
-  cal_ho2(:) = 2.5e-2
+   WHERE ( rh_p <= 50.0)
+      cal_ho2(:) = 0.0007e0
+   ELSE WHERE
+      cal_ho2(:) = 0.0005e0 + 0.00013e0 * rh_p(:)
+   END WHERE
 
   !----------------
   ! Sea salt
@@ -730,10 +728,10 @@ CASE ( cp_cl )
    !===========================================================
 
    ! Temperature dependence (for solid NaCl)
-  WHERE ( rh_p >= 62.0 )
+  WHERE ( rh_p >= 55.0 )
     cal_ho2(:) = 0.05e0
   ELSE WHERE
-    cal_ho2(:) = 5.66e-5 * EXP( 1560.0 / temp(:) )
+    cal_ho2(:) = 2.2e-8 * EXP( 3340.0 / temp(:)) + 0.004e0
   END WHERE
 
 CASE ( cp_no3 )
@@ -742,7 +740,7 @@ CASE ( cp_no3 )
    ! George et al. 2013
    ! Phys. Chem. Chem. Phys.,2013, 15, 12829
    !===========================================================
-  cal_ho2(:) = 0.005
+  cal_ho2(:) = 3.66e-5 * EXP( 1560.0 / temp(:))
 
 CASE ( cp_nn )
 
@@ -751,7 +749,11 @@ CASE ( cp_nn )
    ! George et al. 2013
    ! Phys. Chem. Chem. Phys.,2013, 15, 12829
    !===========================================================
-  cal_ho2(:) = 0.015
+  WHERE ( rh_p <= 25.0 )
+     cal_ho2(:) = 0.015e0
+  ELSE WHERE
+     cal_ho2(:) = (-0.86 * EXP( -0.07 * rh_p(:) ))+ 0.15
+  END WHERE
 
   !----------------
   ! Default

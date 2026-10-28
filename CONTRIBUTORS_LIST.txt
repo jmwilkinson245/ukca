@@ -38,3 +38,4 @@ Joao Teixeira                   Met Office
 Joseph Wallwork                 University of Cambridge
 Robert Waters                   University of Cambridge
 James Weber                     University of Sheffield
+Jonathan Wilkinson              Met Office
