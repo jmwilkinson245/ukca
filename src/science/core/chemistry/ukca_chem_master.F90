@@ -3057,7 +3057,7 @@ ratb_t1(84,'N         ','O2        ','NO        ','O(3P)     ','          ',   &
 ! Added N2O5+H2O gasphase reaction to CRI-Strat temporarily to account for loss
 ! of N2O5, at least until tropospheric heterogeneous chemistry is working...
 ratb_t1(85,'N2O5      ','H2O       ','HONO2     ','HONO2     ','          ',   &
- '          ',2.50e-22, 0.00,0.00,0.00,0.00,0.00,0.00,ti+t+st+cs,0,0,107),     &
+ '          ',1.00e-22, 0.00,0.00,0.00,0.00,0.00,0.00,ti+t+st+cs,0,0,107),     &
 ! B086 Poschl00
 ratb_t1(86,'NO        ','ISO2      ','ISON      ','          ','          ',   &
 '          ',1.12e-13,  0.00, -360.00, 0.00, 0.00, 0.00, 0.00,ti+st,0,0,107),  &
@@ -6534,9 +6534,8 @@ ratb_t1(745,'HO2       ','EtCO3     ','OH        ','EtOO      ','CO2       ',  &
 ! B084 IUPAC  values slightly different (5.1 and -198). Different
 ! B084 choices of results and fitting.
 !----------------------------------------------------------------------
-! B085 N2O5+H2O -> HONO2 HONO2  ????
-! B085 Where is this from? Both JPL and IUPAC only give upper limits
-! B085 (which are lower than this value)
+! B085 N2O5+H2O -> HONO2 HONO2
+! b085 IUPAC upper limit
 !----------------------------------------------------------------------
 ! B086 NO+ISO2 -> ISON   Poschl00
 ! B086 -

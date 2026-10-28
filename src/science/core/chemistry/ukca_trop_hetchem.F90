@@ -92,7 +92,7 @@ REAL, INTENT(IN)    :: aird(nbox)
 REAL, INTENT(IN)    :: pvol(nbox,nmodes,glomap_variables%ncp)
 ! .. Partial volume of soluble components as fraction of
 ! .. solution volume according to fraction of total mass (including water)
-REAL, INTENT(IN)    :: wetdp(nbox,nmodes)   ! Mean wet radius for the mode [m]
+REAL, INTENT(IN)    :: wetdp(nbox,nmodes)   ! Mean wet diameter for the mode [m]
 REAL, INTENT(IN)    :: sarea(nbox,nmodes)   ! Surface area concentn. [cm^2/cm^3]
 REAL, INTENT(OUT)   :: het_rates(nbox,nhet) ! rate coefficients
 
@@ -185,8 +185,8 @@ IF (PrintStatus >= PrStatus_Diag) THEN
 END IF
 
 molec_weight(:) = 9.0e5
-molec_weight(ihet_n2o5)    = m_n2o5
-molec_weight(ihet_ho2_ho2) = m_ho2
+molec_weight(ihet_n2o5)    = m_n2o5   ! g/mol
+molec_weight(ihet_ho2_ho2) = m_ho2    ! g/mol
 IF (ANY(molec_weight > 1.0e5)) THEN
   cmessage = ' Molecular weights not defined for all cases'
   errcode = 1
@@ -787,7 +787,7 @@ FUNCTION cal_loss1k( nbox, sarea, wetdp, aird, mode_gamma,                     &
 ! The 1st-order loss rate on wet aerosol (Dentener's Thesis, p. 14)
 ! is computed as:
 !
-!      K [1/s] = sarea / [ wetdp/dfkg + 4./(gamma * xmms) ]
+!      K [1/s] = sarea / [ wet_rad_cm/dfkg + 4./(gamma * xmms) ]
 !
 ! where XMMS = Mean molecular speed [cm/s] = sqrt(8R*T/pi*M) for Maxwell
 !              [Formulae gives [m/s] if R in J/(mol.K) and M in kg/mol]
@@ -806,7 +806,7 @@ INTEGER, INTENT(IN) :: nbox             ! No of points
 
 REAL, INTENT(IN) :: sarea(nbox)         ! surface area of wet
                                         !  aerosol/vol of air [cm2/cm3]
-REAL, INTENT(IN) :: wetdp(nbox)         ! radius of wet aerosol [cm],
+REAL, INTENT(IN) :: wetdp(nbox)         ! diameter of wet aerosol [m],
                                         ! order of 0.01-10 um
 REAL, INTENT(IN) :: aird(nbox)          ! density of air [#/cm3]
 REAL, INTENT(IN) :: mode_gamma(nbox)    ! Uptake coefficient [unitless] ~ 0.1
@@ -825,10 +825,12 @@ REAL :: cal_loss1k(nbox)       ! Reaction coefficient on aerosol surfaces
 REAL     :: cal_loss1k_min     ! Minimum value returned by function
 REAL     :: sarea_min          ! Minimum surface area to return cal_loss1k_min
 
+REAL     :: wet_rad_cm(nbox)            ! Wet radius of aerosol [cm]
 REAL     :: dfkg(nbox)                  ! Gas phase diffusion coefficient
 REAL     :: rho_a(nbox)                 ! Air density in [kg/m^3]
+REAL     :: vbar(nbox)                  ! Mean velocity of air molecules [cm/s]
 REAL     :: mw_s                        ! molec_weight of species [kg/mol]
-REAL, PARAMETER :: cf=1.0e-2            ! conversion factor 1/(m/s) to 1/(cm/s)
+
 REAL, PARAMETER :: dq=4.5e-10           ! Diameter of air molecule [m]
 
 INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
@@ -849,10 +851,14 @@ mw_s = molec_wt_s/1.0e3
 ! Convert air density from cm-3 (array aird) to kg/m3 (array rho_a)
 rho_a(:) = aird(:)*m_air*1.0e6/avogadro
 
+! Convert from aerosol wet diameter in m to wet radius in cm
+wet_rad_cm(:) = wetdp(:)/2e2
+
 IF (PrintStatus >= PrStatus_Diag) THEN
   WRITE(umMessage,'(A,2E15.6)') 'RHO_A: ',MAXVAL(rho_a),MINVAL(rho_a)
   CALL umPrint(umMessage,src='ukca_trop_hetchem')
 END IF
+
 dfkg(:)=0.0  ! for debug only
 
 ! Set minimum threshold of surface area for which the reaction rate is
@@ -873,7 +879,7 @@ ELSE
   cal_loss1k_min = 1.0e-3
 END IF
 
-WHERE (sarea < sarea_min .OR. wetdp < 1.0e-30 .OR. mode_gamma < 1.0e-30)
+WHERE (sarea < sarea_min .OR. wet_rad_cm < 1.0e-30 .OR. mode_gamma < 1.0e-30)
   ! Use default value of reaction rate for the grid cells with
   ! surface area, radius or uptake coefficient below given thresholds
   ! (basically around zero or negative)
@@ -885,9 +891,12 @@ ELSE WHERE
   ! factor of 1e4 => [cm^2/s]
   dfkg(:) = (3.0e4/(8.0 * avogadro * dq**2 * rho_a(:))) *                      &
        SQRT((rmol*temp(:)*m_air/(2.0*pi))*(mw_s + m_air)/mw_s)
-  !
-  cal_loss1k(:) = sarea(:)/( wetdp(:)/dfkg(:) +                                &
-          (cf/mode_gamma(:))*SQRT(2.0*pi*mw_s/(rmol*temp(:))))
+  
+  ! Mean molecular velocity with conversion to units of cm/s
+  vbar(:) = SQRT(8.0*rmol*temp(:)/(pi*mw_s))*1e2
+  
+  cal_loss1k(:) = sarea(:)/(wet_rad_cm(:)/dfkg(:) +                            &
+                                   4.0/(mode_gamma(:)*vbar(:)))       
 END WHERE
 
 IF (PrintStatus >= PrStatus_Diag) THEN
